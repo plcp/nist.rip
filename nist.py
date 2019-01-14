@@ -253,6 +253,18 @@ def nist(path):
 
     out = out.replace(bytes(_old_url, 'utf8'), bytes(_base_url, 'utf8'))
     out = out.replace(b'webmaster-csrc@nist.gov', b'webmaster-csrc@nist.rip')
+
+    # disclaimer
+    out = out.replace(b'alt="CSRC Logo" class="csrc-header-logo"></a>',
+                b'alt="CSRC Logo" class="csrc-header-logo"></a>' +
+                b'<div class="csrc-header-logo" style="font-size:' +
+                b'smaller; color: #ffffff; text-align: center; margin-top:' +
+                b'1em;">This is an <a href="' +
+                bytes('https://{}/library">'.format(_base_url), 'utf8') +
+                b'archive</a><br>(replace <a href="' +
+                bytes('https://{}">.gov</a>'.format(_old_url), 'utf8') +
+                bytes(' by <a href="https://{}">'.format(_base_url), 'utf8') +
+                b'.rip</a>)</div>')
     return Response(out, mimetype=mimetype)
 
 
