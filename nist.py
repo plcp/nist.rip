@@ -7,6 +7,8 @@ import re
 from flask import Flask, Response, request, redirect
 
 _bin = 'wayback_machine_downloader' # gem install
+_old_url = 'csrc.nist.gov'
+_base_url = 'csrc.nist.rip'
 
 whitelist = None
 blacklist = ('axd', )
@@ -44,7 +46,7 @@ def redact_path(path):
 
 
 def pull_wayback(path, _from=stamps[0], _to=before):
-    url = 'https://csrc.nist.gov/{}'.format(urllib.parse.quote(path))
+    url = 'https://{}/{}'.format(_old_url, urllib.parse.quote(path))
     url = url.replace('%3Fext%3D', '?ext=')
     if url.endswith('index.html'):
         url = url[:-10]
@@ -87,7 +89,7 @@ def from_filesystem(path, use_whitelist=True):
         if path not in whitelist:
             return None
 
-    path = 'websites/csrc.nist.gov/{}'.format(path)
+    path = 'websites/{}/{}'.format(_old_url, path)
     try:
         if os.path.isdir(path) or os.path.isdir(path.lower()):
             if not path.endswith('/'):
@@ -128,13 +130,14 @@ def library(book):
     if library_template is None:
         with open('./library.html', 'r') as f:
             library_template = f.read()
+        library_template = library_template.replace('__base_url__', _base_url)
 
     count = 0
     new_page = library_template
     for entry in library_whitelist:
         count += 1
 
-        url = 'https://csrc.nist.rip/library/{}'.format(entry)
+        url = 'https://{}/library/{}'.format(_base_url, entry)
         new_page = new_page.replace(
             '<br>\n  -- [End of List] --', '<span style="display: inline">' +
             '* <a href="{}">{}</a><br></span>\n'.format(
@@ -153,7 +156,7 @@ def library(book):
                 continue
 
             count += 1
-            url = 'https://csrc.nist.rip/{}'.format(path)
+            url = 'https://{}/{}'.format(_base_url, path)
             new_page = new_page.replace(
                 '<br>\n  -- [End of List] --', '<span style="display: inline">'
                 + '* <a href="{}">{}</a><br></span>\n'.format(
@@ -169,8 +172,8 @@ def library(book):
 
 def not_found(path):
     referrer = request.headers.get('Referer') or ''
-    if not referrer.startswith('https://csrc.nist.rip/'):
-        referrer = 'https://csrc.nist.rip'
+    if not referrer.startswith('https://{}/'.format(_base_url)):
+        referrer = 'https://{}'.format(_base_url)
 
     text = 'Unable to pull file from archive.org :('
     if path.endswith('.pdf'):
@@ -183,7 +186,7 @@ def not_found(path):
     text += '<br>\n<br>\n'
     text += 'Go <a href="{}">back</a> or '.format(referrer)
     text += 'browse the '
-    text += '<a href="https://csrc.nist.rip/library">library</a>.'
+    text += '<a href="https://{}/library">library</a>.'.format(_base_url)
     text += '<br>\n<br>\n<br>\n–––––––––––<br>\n<br>\n'
     text += 'Contact us <a href="mailto:webmaster-csrc@nist.rip">here</a>'
     text += ' to report issues.'
@@ -214,10 +217,11 @@ def nist(path):
         mime = magic.Magic(mime=True)
         mimetype = mime.from_buffer(out)
 
-    out = out.replace(b'csrc.nist.gov', b'csrc.nist.rip')
+    out = out.replace(bytes(_old_url, 'utf8'), bytes(_base_url, 'utf8'))
     out = out.replace(b'webmaster-csrc@nist.gov', b'webmaster-csrc@nist.rip')
     return Response(out, mimetype=mimetype)
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port='8080')
+    # app.run(host='0.0.0.0', port='8080')
+    app.run(host='127.0.0.1', port='8080')
