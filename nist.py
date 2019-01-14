@@ -172,6 +172,11 @@ def generate_list(new_page, entries, use_path=False):
 def library():
     global library_whitelist
     global library_template
+    global whitelist
+
+    if whitelist is None:
+        with open('whitelist.txt', 'r') as f:
+            whitelist = [l.strip('\n') for l in f]
 
     if library_whitelist is None:
         lib = os.listdir('./pdfs')
