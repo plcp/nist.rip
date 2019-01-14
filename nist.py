@@ -59,6 +59,14 @@ def redact_path(path):
     path = re.sub('\.\.+', '.', path)
     return re.sub('//+', '/', path)
 
+
+def nocache_path():
+    path = request.path
+    if path.endswith(library_extensions):
+        return True
+    return False
+
+
 @cache.memoize(3600)
 def pull_wayback(path, _from=stamps[0], _to=before):
     url = 'https://{}/{}'.format(_old_url, urllib.parse.quote(path))
@@ -238,7 +246,7 @@ def not_found(path):
 
 @app.route('/', defaults={'path': 'index.html'})
 @app.route('/<path:path>')
-@cache.cached(timeout=300)
+@cache.cached(60, unless=nocache_path)
 def nist(path):
     path = fixup_path(path)
     path = redact_path(path)
