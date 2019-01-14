@@ -1,0 +1,223 @@
+import subprocess
+import urllib
+import magic
+import os
+import re
+
+from flask import Flask, Response, request, redirect
+
+_bin = 'wayback_machine_downloader' # gem install
+
+whitelist = None
+blacklist = ('axd', )
+library_template = None
+library_whitelist = None
+
+before = '20181224085649'
+stamps = [
+    '20181220085649',
+    '20180620085649',
+    '20170620085649',
+    '20100620085649',
+    '20000620085649', ]
+
+app = Flask(__name__)
+
+
+def fixup_path(path):
+    if '/' in request.url:
+        last = request.url.split('/')[-1]
+
+        if '/' in path:
+            parts = path.split('/')
+            if last != parts[-1]:
+                path = '/'.join(parts[:-1] + [last])
+    return path
+
+
+def redact_path(path):
+    path = path[:256]
+
+    path = re.sub('[\\*%"\']', '', path)
+    path = re.sub('\.\.+', '.', path)
+    return re.sub('//+', '/', path)
+
+
+def pull_wayback(path, _from=stamps[0], _to=before):
+    url = 'https://csrc.nist.gov/{}'.format(urllib.parse.quote(path))
+    url = url.replace('%3Fext%3D', '?ext=')
+    if url.endswith('index.html'):
+        url = url[:-10]
+
+    if url.endswith(blacklist):
+        return None
+
+    try:
+        try:
+            out = subprocess.check_output(
+                [_bin, url, '--exact-url', '--to', _to, '--from', _from],
+                stderr=subprocess.STDOUT, shell=False, timeout=30)
+        except subprocess.TimeoutExpired:
+            out = b'found 0 snaphots No files'
+
+        # magic strings in error message to check for wayback failure
+        if b'found 0 snaphots' in out and b'No files' in out:
+            if _from not in stamps or _from == stamps[-1]:
+                return None
+            _next = stamps[stamps.index(_from) + 1]
+            return pull_wayback(path, _from=_next)
+
+        whitelist.append(path)
+        with open('whitelist.txt', 'a') as f:
+            f.write(path + '\n')
+
+        return out
+
+    except subprocess.CalledProcessError as e:
+        return None
+
+
+def from_filesystem(path, use_whitelist=True):
+    global whitelist
+
+    if use_whitelist:
+        if whitelist is None:
+            with open('whitelist.txt', 'r') as f:
+                whitelist = [l.strip('\n') for l in f]
+        if path not in whitelist:
+            return None
+
+    path = 'websites/csrc.nist.gov/{}'.format(path)
+    try:
+        if os.path.isdir(path) or os.path.isdir(path.lower()):
+            if not path.endswith('/'):
+                path += '/'
+            path += 'index.html'
+
+        if not os.path.isfile(path):
+            path = path.lower()
+
+        with open(path, 'rb') as f:
+            return f.read()
+
+    except FileNotFoundError:
+        return None
+
+
+@app.route('/library', defaults={'book': None})
+@app.route('/library/<book>')
+def library(book):
+    global library_whitelist
+    global library_template
+
+    if library_whitelist is None:
+        lib = os.listdir('./pdfs')
+        lib = [b for b in lib if b.endswith('pdf')]
+        lib = [b for b in lib if os.path.isfile('./pdfs/{}'.format(b))]
+        library_whitelist = list(lib)
+
+    if book is not None:
+        book = redact_path(book)
+
+        if book.endswith('.pdf') and book in library_whitelist:
+            with open('./pdfs/{}'.format(book), 'rb') as f:
+                return Response(f.read(), mimetype='application/pdf')
+
+        return 'File not found.', 404
+
+    if library_template is None:
+        with open('./library.html', 'r') as f:
+            library_template = f.read()
+
+    count = 0
+    new_page = library_template
+    for entry in library_whitelist:
+        count += 1
+
+        url = 'https://csrc.nist.rip/library/{}'.format(entry)
+        new_page = new_page.replace(
+            '<br>\n  -- [End of List] --', '<span style="display: inline">' +
+            '* <a href="{}">{}</a><br></span>\n'.format(
+                url, entry) + '<br>\n  -- [End of List] --')
+
+    if whitelist is not None:
+        for path in whitelist:
+            if not path.endswith('pdf'):
+                continue
+
+            entry = path
+            if '/' in path:
+                entry = path.split('/')[-1]
+
+            if entry in library_whitelist:
+                continue
+
+            count += 1
+            url = 'https://csrc.nist.rip/{}'.format(path)
+            new_page = new_page.replace(
+                '<br>\n  -- [End of List] --', '<span style="display: inline">'
+                + '* <a href="{}">{}</a><br></span>\n'.format(
+                    url, entry) + '<br>\n  -- [End of List] --')
+
+    new_page = new_page.replace(
+        '<br>\n  -- [End of List] --',
+        '<br>\n -- <blink id="count">{}</blink> '.format(count) +
+        'files displayed --')
+
+    return new_page
+
+
+def not_found(path):
+    referrer = request.headers.get('Referer') or ''
+    if not referrer.startswith('https://csrc.nist.rip/'):
+        referrer = 'https://csrc.nist.rip'
+
+    text = 'Unable to pull file from archive.org :('
+    if path.endswith('.pdf'):
+        text = (
+            'Unable to pull this pdf from the archive,' + ' send us your copy '
+            + '<a href="mailto:webmaster-csrc@nist.rip">here</a>!')
+
+    text = ('<html><body style="font-family: mono; color: #555;' +
+            'background-color: #fafafa;">' + text)
+    text += '<br>\n<br>\n'
+    text += 'Go <a href="{}">back</a> or '.format(referrer)
+    text += 'browse the '
+    text += '<a href="https://csrc.nist.rip/library">library</a>.'
+    text += '<br>\n<br>\n<br>\n–––––––––––<br>\n<br>\n'
+    text += 'Contact us <a href="mailto:webmaster-csrc@nist.rip">here</a>'
+    text += ' to report issues.'
+
+    text += '</body></html>'
+    return text
+
+
+@app.route('/', defaults={'path': 'index.html'})
+@app.route('/<path:path>')
+def nist(path):
+    path = fixup_path(path)
+    path = redact_path(path)
+
+    out = from_filesystem(path)
+    if out is None:
+        pull_wayback(path)
+        out = from_filesystem(path)
+
+    if out is None:
+        return not_found(path), 404
+
+    if path.endswith('.js'):
+        mimetype = 'text/script'
+    elif path.endswith('.css'):
+        mimetype = 'text/css'
+    else:
+        mime = magic.Magic(mime=True)
+        mimetype = mime.from_buffer(out)
+
+    out = out.replace(b'csrc.nist.gov', b'csrc.nist.rip')
+    out = out.replace(b'webmaster-csrc@nist.gov', b'webmaster-csrc@nist.rip')
+    return Response(out, mimetype=mimetype)
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port='8080')

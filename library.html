@@ -1,0 +1,118 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NIST Computer Security Resource Center | Library</title>
+  <style>
+    body
+    {
+        font-family: monospace;
+        background-color: #fafafa;
+        color: #555;
+    }
+
+    input
+    {
+        border: none;
+        background-color: #fafafa;
+        color: #bbb;
+    }
+
+    header
+    {
+        margin-bottom: 1em;
+    }
+
+    a
+    {
+        text-decoration: none;
+        color: #55f;
+    }
+
+    #list
+    {
+        margin-left: 4em;
+    }
+        
+    #back
+    {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  Files available<a href="#footer">¹</a> to download:
+  <input id="filter">
+</header>
+
+<div id="list">
+  <br>
+  -- [End of List] --
+  <br>
+</div>
+
+<div id="back">
+[<a href="https://csrc.nist.rip">back</a>]
+</div>
+
+<footer id="footer">
+  <br>
+  <br>
+  Files sourced from <a href="https://archive.org">archive.org</a> and <a href="https://fismapedia.org">fismapedia.org</a>.
+  <br>
+  <br>
+</footer>
+<script>
+function activate()
+{
+    var value = filter.value
+
+    var list = document.getElementById('list')
+    var count = 0
+
+    var content = []
+    var nb_nodes = list.childNodes.length
+    for (var i = 0; i < nb_nodes; i++)
+    {
+        var n = list.childNodes[i]
+        if (n.nodeName != 'SPAN')
+        {
+            var outer = n.outerHTML
+            if (outer)
+                content.push(outer)
+            else
+                content.push(n.nodeValue)
+            continue
+        }
+
+        var t = n.innerText.toLowerCase()
+        if (t.includes(value.toLowerCase()))
+        {
+            count++
+            var outer = n.outerHTML
+            outer = outer.replace('display: none', 'display: inline')
+            content.push(outer)
+        }
+        else
+        {
+            var outer = n.outerHTML
+            outer = outer.replace('display: inline', 'display: none')
+            content.push(outer)
+        }
+    }
+    list.innerHTML = content.join('')
+
+    document.getElementById('count').innerHTML = count.toString()
+}
+
+var filter = document.getElementById('filter')
+filter.placeholder = 'Filter'
+filter.onkeyup = activate
+filter.value = ''
+
+
+</script>
+</body></html>
