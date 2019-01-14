@@ -60,7 +60,7 @@ def redact_path(path):
     return re.sub('//+', '/', path)
 
 
-@cache.memoize(600)
+@cache.memoize(3600)
 def pull_wayback(path, _from=stamps[0], _to=before):
     url = 'https://{}/{}'.format(_old_url, urllib.parse.quote(path))
     url = url.replace('%3Fext%3D', '?ext=')
@@ -85,7 +85,7 @@ def pull_wayback(path, _from=stamps[0], _to=before):
             _next = stamps[stamps.index(_from) + 1]
             return pull_wayback(path, _from=_next)
 
-        whitelist.append(path)
+        whitelist.add(path)
         with open('whitelist.txt', 'a') as f:
             f.write(path + '\n')
 
@@ -102,7 +102,7 @@ def from_filesystem(path, use_whitelist=True):
     if use_whitelist:
         if whitelist is None:
             with open('whitelist.txt', 'r') as f:
-                whitelist = [l.strip('\n') for l in f]
+                whitelist = set([l.strip('\n') for l in f])
         if path not in whitelist:
             return None
 
@@ -173,13 +173,13 @@ def library():
 
     if whitelist is None:
         with open('whitelist.txt', 'r') as f:
-            whitelist = [l.strip('\n') for l in f]
+            whitelist = set([l.strip('\n') for l in f])
 
     if library_whitelist is None:
         lib = os.listdir('./pdfs')
         lib = [b for b in lib if b.endswith(library_extensions)]
         lib = [b for b in lib if os.path.isfile('./pdfs/{}'.format(b))]
-        library_whitelist = list(lib)
+        library_whitelist = set(lib)
 
     if library_template is None:
         with open('./library.html', 'r') as f:
@@ -207,7 +207,7 @@ def library_file(book):
         lib = os.listdir('./pdfs')
         lib = [b for b in lib if b.endswith(library_extensions)]
         lib = [b for b in lib if os.path.isfile('./pdfs/{}'.format(b))]
-        library_whitelist = list(lib)
+        library_whitelist = set(lib)
 
     book = redact_path(book)
     if book.endswith(library_extensions) and book in library_whitelist:
