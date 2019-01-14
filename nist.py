@@ -14,6 +14,18 @@ whitelist = None
 blacklist = ('axd', )
 library_template = None
 library_whitelist = None
+library_extensions = (
+    '.doc',
+    '.docx',
+    '.epub',
+    '.ps',
+    '.rtf',
+    '.txt',
+    '.wpd',
+    '.xls',
+    '.xlsx',
+    '.xml',
+    '.zip', )
 
 before = '20181224085649'
 stamps = [
@@ -109,7 +121,7 @@ def generate_list(new_page, entries):
     count = 0
     divopen = False
     for entry in entries:
-        if not entry.endswith('pdf'):
+        if not entry.endswith(library_extensions):
             continue
 
         if '/' in entry:
@@ -149,16 +161,20 @@ def library(book):
 
     if library_whitelist is None:
         lib = os.listdir('./pdfs')
-        lib = [b for b in lib if b.endswith('pdf')]
+        lib = [b for b in lib if b.endswith(library_extensions)]
         lib = [b for b in lib if os.path.isfile('./pdfs/{}'.format(b))]
         library_whitelist = list(lib)
 
     if book is not None:
         book = redact_path(book)
 
-        if book.endswith('.pdf') and book in library_whitelist:
+        if book.endswith(library_extensions) and book in library_whitelist:
             with open('./pdfs/{}'.format(book), 'rb') as f:
-                return Response(f.read(), mimetype='application/pdf')
+                out = f.read()
+
+            mime = magic.Magic(mime=True)
+            mimetype = mime.from_buffer(out)
+            return Response(out, mimetype=mimetype)
 
         return 'File not found.', 404
 
@@ -186,10 +202,10 @@ def not_found(path):
         referrer = 'https://{}'.format(_base_url)
 
     text = 'Unable to pull file from archive.org :('
-    if path.endswith('.pdf'):
-        text = (
-            'Unable to pull this pdf from the archive,' + ' send us your copy '
-            + '<a href="mailto:webmaster-csrc@nist.rip">here</a>!')
+    if path.endswith(library_extensions):
+        text = ('Unable to pull this media from the archive,' +
+                ' send us your copy ' +
+                '<a href="mailto:webmaster-csrc@nist.rip">here</a>!')
 
     text = ('<html><body style="font-family: mono; color: #555;' +
             'background-color: #fafafa;">' + text)
