@@ -159,10 +159,9 @@ def generate_list(new_page, entries, use_path=False):
 
     return new_page, count
 
-@app.route('/library', defaults={'book': None})
-@app.route('/library/<book>')
+@app.route('/library')
 @cache.cached(timeout=3600)
-def library(book):
+def library():
     global library_whitelist
     global library_template
 
@@ -171,19 +170,6 @@ def library(book):
         lib = [b for b in lib if b.endswith(library_extensions)]
         lib = [b for b in lib if os.path.isfile('./pdfs/{}'.format(b))]
         library_whitelist = list(lib)
-
-    if book is not None:
-        book = redact_path(book)
-
-        if book.endswith(library_extensions) and book in library_whitelist:
-            with open('./pdfs/{}'.format(book), 'rb') as f:
-                out = f.read()
-
-            mime = magic.Magic(mime=True)
-            mimetype = mime.from_buffer(out[:2**20])
-            return Response(out, mimetype=mimetype)
-
-        return 'File not found.', 404
 
     if library_template is None:
         with open('./library.html', 'r') as f:
@@ -201,6 +187,28 @@ def library(book):
         'files displayed --')
 
     return new_page
+
+
+@app.route('/library/<book>')
+def library_file(book):
+    global library_whitelist
+
+    if library_whitelist is None:
+        lib = os.listdir('./pdfs')
+        lib = [b for b in lib if b.endswith(library_extensions)]
+        lib = [b for b in lib if os.path.isfile('./pdfs/{}'.format(b))]
+        library_whitelist = list(lib)
+
+    book = redact_path(book)
+    if book.endswith(library_extensions) and book in library_whitelist:
+        with open('./pdfs/{}'.format(book), 'rb') as f:
+            out = f.read()
+
+        mime = magic.Magic(mime=True)
+        mimetype = mime.from_buffer(out[:2**20])
+        return Response(out, mimetype=mimetype)
+
+    return 'File not found.', 404
 
 
 def not_found(path):
