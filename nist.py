@@ -160,7 +160,7 @@ def generate_list(new_page, entries, use_path=False):
     return new_page, count
 
 @app.route('/library')
-@cache.cached(timeout=3600)
+@cache.cached(timeout=600)
 def library():
     global library_whitelist
     global library_template
@@ -238,7 +238,7 @@ def not_found(path):
 
 @app.route('/', defaults={'path': 'index.html'})
 @app.route('/<path:path>')
-@cache.cached(timeout=3600)
+@cache.cached(timeout=300)
 def nist(path):
     path = fixup_path(path)
     path = redact_path(path)
