@@ -5,6 +5,7 @@ import os
 import re
 
 from flask import Flask, Response, request, redirect
+from flask_caching import Cache
 
 _bin = 'wayback_machine_downloader' # gem install
 _old_url = 'csrc.nist.gov'
@@ -37,7 +38,8 @@ stamps = [
     '20000620085649', ]
 
 app = Flask(__name__)
-
+# cache = Cache(app, config={'CACHE_TYPE': 'filesystem', 'CACHE_DIR': '/tmp'})
+cache = Cache(app, config={'CACHE_TYPE': 'redis'})
 
 def fixup_path(path):
     if '/' in request.url:
@@ -57,7 +59,7 @@ def redact_path(path):
     path = re.sub('\.\.+', '.', path)
     return re.sub('//+', '/', path)
 
-
+@cache.memoize(3600)
 def pull_wayback(path, _from=stamps[0], _to=before):
     url = 'https://{}/{}'.format(_old_url, urllib.parse.quote(path))
     url = url.replace('%3Fext%3D', '?ext=')
@@ -159,6 +161,7 @@ def generate_list(new_page, entries, use_path=False):
 
 @app.route('/library', defaults={'book': None})
 @app.route('/library/<book>')
+@cache.cached(timeout=3600)
 def library(book):
     global library_whitelist
     global library_template
@@ -227,6 +230,7 @@ def not_found(path):
 
 @app.route('/', defaults={'path': 'index.html'})
 @app.route('/<path:path>')
+@cache.cached(timeout=3600)
 def nist(path):
     path = fixup_path(path)
     path = redact_path(path)
