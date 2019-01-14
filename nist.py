@@ -60,14 +60,7 @@ def redact_path(path):
     return re.sub('//+', '/', path)
 
 
-def nocache_path():
-    path = request.path
-    if path.endswith(library_extensions):
-        return True
-    return False
-
-
-@cache.memoize(3600)
+@cache.memoize(600)
 def pull_wayback(path, _from=stamps[0], _to=before):
     url = 'https://{}/{}'.format(_old_url, urllib.parse.quote(path))
     url = url.replace('%3Fext%3D', '?ext=')
@@ -102,6 +95,7 @@ def pull_wayback(path, _from=stamps[0], _to=before):
         return None
 
 
+@cache.memoize(600)
 def from_filesystem(path, use_whitelist=True):
     global whitelist
 
@@ -121,6 +115,9 @@ def from_filesystem(path, use_whitelist=True):
 
         if not os.path.isfile(path):
             path = path.lower()
+
+        if path.endswith(library_extensions):
+            cache.delete_memoized(from_filesystem, path, use_whitelist)
 
         with open(path, 'rb') as f:
             return f.read()
@@ -251,7 +248,6 @@ def not_found(path):
 
 @app.route('/', defaults={'path': 'index.html'})
 @app.route('/<path:path>')
-@cache.cached(60, unless=nocache_path)
 def nist(path):
     path = fixup_path(path)
     path = redact_path(path)
