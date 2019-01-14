@@ -118,12 +118,16 @@ def from_filesystem(path, use_whitelist=True):
     except FileNotFoundError:
         return None
 
-def generate_list(new_page, entries):
+def generate_list(new_page, entries, use_path=False):
     count = 0
     divopen = False
     for entry in entries:
         if not entry.endswith(library_extensions):
             continue
+
+        url = 'https://{}/library/{}'.format(_base_url, entry)
+        if use_path:
+            url = 'https://{}/{}'.format(_base_url, entry)
 
         if '/' in entry:
             entry = entry.split('/')[-1]
@@ -135,7 +139,6 @@ def generate_list(new_page, entries):
                 '<br>\n  -- [End of List] --',
                     '<p>' + '<br>\n  -- [End of List] --')
 
-        url = 'https://{}/library/{}'.format(_base_url, entry)
         new_page = new_page.replace(
             '<br>\n  -- [End of List] --', '<span style="display: inline">' +
             '* <a href="{}">{}</a><br></span>\n'.format(
@@ -186,7 +189,7 @@ def library(book):
 
     new_page, count = generate_list(library_template, library_whitelist)
     if whitelist is not None:
-        new_page, new_count = generate_list(new_page, whitelist)
+        new_page, new_count = generate_list(new_page, whitelist, use_path=True)
         count += new_count
 
     new_page = new_page.replace(
