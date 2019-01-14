@@ -1,10 +1,13 @@
 import subprocess
+import threading
+import tarfile
 import urllib
+import queue
 import magic
 import os
 import re
 
-from flask import Flask, Response, request, redirect
+from flask import Flask, Response, request, redirect, stream_with_context
 from flask_caching import Cache
 
 _bin = 'wayback_machine_downloader' # gem install
@@ -59,6 +62,20 @@ def redact_path(path):
     path = re.sub('\.\.+', '.', path)
     return re.sub('//+', '/', path)
 
+def load_whitelists():
+    global library_whitelist
+    global whitelist
+
+    if whitelist is None:
+        with open('whitelist.txt', 'r') as f:
+            whitelist = set([l.strip('\n') for l in f])
+
+    if library_whitelist is None:
+        lib = os.listdir('./pdfs')
+        lib = [b for b in lib if b.endswith(library_extensions)]
+        lib = [b for b in lib if os.path.isfile('./pdfs/{}'.format(b))]
+        library_whitelist = set(lib)
+
 
 @cache.memoize(3600)
 def pull_wayback(path, _from=stamps[0], _to=before):
@@ -101,8 +118,8 @@ def from_filesystem(path, use_whitelist=True):
 
     if use_whitelist:
         if whitelist is None:
-            with open('whitelist.txt', 'r') as f:
-                whitelist = set([l.strip('\n') for l in f])
+            load_whitelists()
+
         if path not in whitelist:
             return None
 
@@ -171,15 +188,8 @@ def library():
     global library_template
     global whitelist
 
-    if whitelist is None:
-        with open('whitelist.txt', 'r') as f:
-            whitelist = set([l.strip('\n') for l in f])
-
-    if library_whitelist is None:
-        lib = os.listdir('./pdfs')
-        lib = [b for b in lib if b.endswith(library_extensions)]
-        lib = [b for b in lib if os.path.isfile('./pdfs/{}'.format(b))]
-        library_whitelist = set(lib)
+    if whitelist is None or library_whitelist is None:
+        load_whitelists()
 
     if library_template is None:
         with open('./library.html', 'r') as f:
@@ -199,15 +209,68 @@ def library():
     return new_page
 
 
+def worker_tarball(bufline):
+    class streamer:
+        def tell(self):
+            return 0
+
+        def read(self, size):
+            return b''
+
+        def seek(self, pos):
+            pass
+
+        def write(self, line):
+            bufline.put(line)
+
+    tar = tarfile.open(fileobj=streamer(), mode='w:')
+    for filename in library_whitelist:
+        if not filename.endswith(library_extensions):
+            continue
+
+        tar.add(name='./pdfs/{}'.format(filename),
+                arcname='./extra/{}'.format(filename),
+                recursive=False)
+
+    for path in whitelist:
+        path = 'websites/{}/{}'.format(_old_url, path)
+        if not path.endswith(library_extensions):
+            continue
+
+        if not os.path.isfile(path):
+            path = path.lower()
+
+        tar.add(name=path, recursive=False)
+
+    tar.close()
+
+
+def generate_tarball():
+    bufline = queue.Queue(1024)
+    worker = threading.Thread(target=worker_tarball, args=(bufline,))
+    worker.start()
+    while worker.is_alive():
+        yield bufline.get(timeout=60)
+
+
+@app.route('/library/csrc.tar')
+def library_tarball():
+
+    if whitelist is None or library_whitelist is None:
+        load_whitelists()
+
+    response = Response(
+        stream_with_context(generate_tarball()), mimetype='application/x-tar')
+    response.headers['Content-Disposition'] = 'attachment; filename=csrc.tar'
+    return response
+
+
 @app.route('/library/<book>')
 def library_file(book):
     global library_whitelist
 
     if library_whitelist is None:
-        lib = os.listdir('./pdfs')
-        lib = [b for b in lib if b.endswith(library_extensions)]
-        lib = [b for b in lib if os.path.isfile('./pdfs/{}'.format(b))]
-        library_whitelist = set(lib)
+        load_whitelists()
 
     book = redact_path(book)
     if book.endswith(library_extensions) and book in library_whitelist:
