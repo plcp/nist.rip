@@ -15,6 +15,7 @@ blacklist = ('axd', )
 library_template = None
 library_whitelist = None
 library_extensions = (
+    '.pdf',
     '.doc',
     '.docx',
     '.epub',
