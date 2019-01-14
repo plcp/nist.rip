@@ -105,6 +105,41 @@ def from_filesystem(path, use_whitelist=True):
     except FileNotFoundError:
         return None
 
+def generate_list(new_page, entries):
+    count = 0
+    divopen = False
+    for entry in entries:
+        if not entry.endswith('pdf'):
+            continue
+
+        if '/' in entry:
+            entry = entry.split('/')[-1]
+
+        count += 1
+        if divopen is False:
+            divopen = True
+            new_page = new_page.replace(
+                '<br>\n  -- [End of List] --',
+                    '<p>' + '<br>\n  -- [End of List] --')
+
+        url = 'https://{}/library/{}'.format(_base_url, entry)
+        new_page = new_page.replace(
+            '<br>\n  -- [End of List] --', '<span style="display: inline">' +
+            '* <a href="{}">{}</a><br></span>\n'.format(
+                url, entry) + '<br>\n  -- [End of List] --')
+
+        if divopen is True and count % 30 == 0:
+            divopen = False
+            new_page = new_page.replace(
+                '<br>\n  -- [End of List] --',
+                    '</p>' + '<br>\n  -- [End of List] --')
+
+    if divopen is True:
+        new_page = new_page.replace(
+                '<br>\n  -- [End of List] --',
+                    '</p>' + '<br>\n  -- [End of List] --')
+
+    return new_page, count
 
 @app.route('/library', defaults={'book': None})
 @app.route('/library/<book>')
@@ -132,35 +167,10 @@ def library(book):
             library_template = f.read()
         library_template = library_template.replace('__base_url__', _base_url)
 
-    count = 0
-    new_page = library_template
-    for entry in library_whitelist:
-        count += 1
-
-        url = 'https://{}/library/{}'.format(_base_url, entry)
-        new_page = new_page.replace(
-            '<br>\n  -- [End of List] --', '<span style="display: inline">' +
-            '* <a href="{}">{}</a><br></span>\n'.format(
-                url, entry) + '<br>\n  -- [End of List] --')
-
+    new_page, count = generate_list(library_template, library_whitelist)
     if whitelist is not None:
-        for path in whitelist:
-            if not path.endswith('pdf'):
-                continue
-
-            entry = path
-            if '/' in path:
-                entry = path.split('/')[-1]
-
-            if entry in library_whitelist:
-                continue
-
-            count += 1
-            url = 'https://{}/{}'.format(_base_url, path)
-            new_page = new_page.replace(
-                '<br>\n  -- [End of List] --', '<span style="display: inline">'
-                + '* <a href="{}">{}</a><br></span>\n'.format(
-                    url, entry) + '<br>\n  -- [End of List] --')
+        new_page, new_count = generate_list(new_page, whitelist)
+        count += new_count
 
     new_page = new_page.replace(
         '<br>\n  -- [End of List] --',

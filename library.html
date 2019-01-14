@@ -29,6 +29,11 @@
         color: #55f;
     }
 
+    p
+    {
+        display: inline;
+    }
+
     #list
     {
         margin-left: 4em;
@@ -67,13 +72,9 @@
   <br>
 </footer>
 <script>
-function activate()
+function update(list, value)
 {
-    var value = filter.value
-
-    var list = document.getElementById('list')
     var count = 0
-
     var content = []
     var nb_nodes = list.childNodes.length
     for (var i = 0; i < nb_nodes; i++)
@@ -106,7 +107,34 @@ function activate()
     }
     list.innerHTML = content.join('')
 
+    count += parseInt(document.getElementById('count').innerHTML)
     document.getElementById('count').innerHTML = count.toString()
+}
+
+var tasks = []
+function activate()
+{
+    document.getElementById('count').innerHTML = '0'
+
+    var nb_tasks = tasks.length
+    for (var i = 0; i < nb_tasks; i++)
+        clearTimeout(tasks[i])
+    tasks = []
+
+    var value = filter.value
+    var list = document.getElementById('list')
+    var nb_nodes = list.childNodes.length
+    for (var i = 0; i < nb_nodes; i++)
+    {
+        var n = list.childNodes[i]
+        if (n.nodeName == 'P')
+        {
+            (function(a, b)
+            {
+                tasks.push(setTimeout(function() { update(a, b) }, i * 10))
+            }(n, value))
+        }
+    }
 }
 
 var filter = document.getElementById('filter')
