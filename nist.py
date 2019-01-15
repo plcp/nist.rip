@@ -228,9 +228,12 @@ def worker_tarball(bufline):
         if not filename.endswith(library_extensions):
             continue
 
-        tar.add(name='./pdfs/{}'.format(filename),
+        try:
+            tar.add(name='./pdfs/{}'.format(filename),
                 arcname='./extra/{}'.format(filename),
                 recursive=False)
+        except FileNotFoundError:
+            pass
 
     for path in whitelist:
         path = 'websites/{}/{}'.format(_old_url, path)
@@ -240,7 +243,10 @@ def worker_tarball(bufline):
         if not os.path.isfile(path):
             path = path.lower()
 
-        tar.add(name=path, recursive=False)
+        try:
+            tar.add(name=path, recursive=False)
+        except FileNotFoundError:
+            pass
 
     tar.close()
 
