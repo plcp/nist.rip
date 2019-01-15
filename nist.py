@@ -66,9 +66,8 @@ def load_whitelists():
     global library_whitelist
     global whitelist
 
-    if whitelist is None:
-        with open('whitelist.txt', 'r') as f:
-            whitelist = set([l.strip('\n') for l in f])
+    with open('whitelist.txt', 'r') as f:
+        whitelist = set([l.strip('\n') for l in f])
 
     if library_whitelist is None:
         lib = os.listdir('./pdfs')
@@ -113,15 +112,13 @@ def pull_wayback(path, _from=stamps[0], _to=before):
 
 
 @cache.memoize(600)
-def from_filesystem(path, use_whitelist=True):
+def from_filesystem(path):
     global whitelist
+    if whitelist is None:
+        load_whitelists()
 
-    if use_whitelist:
-        if whitelist is None:
-            load_whitelists()
-
-        if path not in whitelist:
-            return None
+    if path not in whitelist:
+        return None
 
     path = 'websites/{}/{}'.format(_old_url, path)
     try:
@@ -318,6 +315,9 @@ def not_found(path):
 @app.route('/', defaults={'path': 'index.html'})
 @app.route('/<path:path>')
 def nist(path):
+    global whitelist
+    whitelist = None
+
     path = fixup_path(path)
     path = redact_path(path)
 
