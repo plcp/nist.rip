@@ -337,6 +337,9 @@ def nist(path):
         mime = magic.Magic(mime=True)
         mimetype = mime.from_buffer(out[:2**20])
 
+    if 'application' in mimetype or path.endswith(library_extensions):
+        return Response(out, mimetype=mimetype)
+
     out = out.replace(bytes(_old_url, 'utf8'), bytes(_base_url, 'utf8'))
     out = out.replace(b'webmaster-csrc@nist.gov', b'webmaster-csrc@nist.rip')
 
