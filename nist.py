@@ -131,7 +131,7 @@ def from_filesystem(path):
             path = path.lower()
 
         if path.endswith(library_extensions):
-            cache.delete_memoized(from_filesystem, path, use_whitelist)
+            cache.delete_memoized(from_filesystem, path)
 
         with open(path, 'rb') as f:
             return f.read()
