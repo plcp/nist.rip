@@ -141,6 +141,7 @@ def from_filesystem(path):
 
 def generate_list(new_page, entries, use_path=False):
     count = 0
+    payload = ''
     divopen = False
     for entry in entries:
         if not entry.endswith(library_extensions):
@@ -156,25 +157,20 @@ def generate_list(new_page, entries, use_path=False):
         count += 1
         if divopen is False:
             divopen = True
-            new_page = new_page.replace(
-                '<br>\n  -- [End of List] --',
-                    '<p>' + '<br>\n  -- [End of List] --')
+            payload += '<p>'
 
-        new_page = new_page.replace(
-            '<br>\n  -- [End of List] --', '<span style="display: inline">' +
-            '* <a href="{}">{}</a><br></span>\n'.format(
-                url, entry) + '<br>\n  -- [End of List] --')
+        payload += ('<span style="display: inline">' +
+                    '* <a href="{}">{}</a><br></span>\n'.format(url, entry))
 
         if divopen is True and count % 30 == 0:
             divopen = False
-            new_page = new_page.replace(
-                '<br>\n  -- [End of List] --',
-                    '</p>' + '<br>\n  -- [End of List] --')
+            payload += '</p>'
 
     if divopen is True:
-        new_page = new_page.replace(
-                '<br>\n  -- [End of List] --',
-                    '</p>' + '<br>\n  -- [End of List] --')
+            payload += '</p>'
+
+    new_page = new_page.replace('<br>\n  -- [End of List] --',
+                                payload + '<br>\n  -- [End of List] --')
 
     return new_page, count
 
