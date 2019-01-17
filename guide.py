@@ -125,7 +125,7 @@ def populate(refs, urls, url_prefix='', extensions=('pdf')):
             c = orig.lower()
 
             score = 0
-            score += 10 if not '/' in c else 0
+            score += 10 if c.startswith('library') else 0
             for r in range(1, 5):
                 if 'r{}'.format(r) in c or 'rev{}'.format(r) in c:
                     score += r * 0.01

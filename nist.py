@@ -181,9 +181,9 @@ def generate_guide(new_page):
         load_whitelists()
 
     sections, refs = guide.load()
+    refs = guide.populate(refs, whitelist, extensions=library_extensions)
     refs = guide.populate(refs, library_whitelist, url_prefix='library/',
                     extensions=library_extensions)
-    refs = guide.populate(refs, whitelist, extensions=library_extensions)
 
     payload = ''
     for name, section in sections.items():
