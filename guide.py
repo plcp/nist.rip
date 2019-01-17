@@ -103,12 +103,11 @@ def populate(refs, urls, url_prefix='', extensions=('pdf')):
             if month is not None:
                 pattern = '[ _-]+'.join([uid[-2:], month]) + '[^0-9]'
                 pattern = re.compile(pattern)
-                best = 'nistbul'
-                if 'ITL Security Bulletin' in title:
+                best = 'bul'
+                if 'itl security' in title:
                     best = 'itl'
 
         if pattern is None:
-            print(uid)
             continue
 
         for url in urls:
@@ -122,8 +121,8 @@ def populate(refs, urls, url_prefix='', extensions=('pdf')):
             continue
 
         scores = []
-        for c in candidates:
-            c = c.lower()
+        for orig in candidates:
+            c = orig.lower()
 
             score = 0
             score += 10 if not '/' in c else 0
@@ -157,11 +156,10 @@ def populate(refs, urls, url_prefix='', extensions=('pdf')):
             for b in title.lower().split(' '):
                 score += 0.1 if b in c else 0
 
-            scores.append((score, c))
+            scores.append((score, orig))
 
         scores.sort(key=lambda x: -x[0])
         refs[oid]['url'] = scores[0][1]
-        refs[oid]['related'] = (
-            (refs[oid]['related'] or []) + [sc[1] for sc in scores[1:]])
+        refs[oid]['related'] += [sc[1] for sc in scores[1:]]
 
     return refs

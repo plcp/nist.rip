@@ -65,6 +65,11 @@
   <input id="filter"> <span id="expd"></span>
 </header>
 
+<script>
+if (!window.location.href.includes('#doc-'))
+    document.getElementById('guide').style.display = 'none'
+</script>
+
 <div id="list">
   <div id="guide">
     <br>
@@ -223,9 +228,6 @@ expd.onclick = function()
     }
     activate()
 }
-
-if (!window.location.href.includes('#doc-'))
-    expd.onclick()
 
 </script>
 </body></html>
