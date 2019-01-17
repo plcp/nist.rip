@@ -9,6 +9,7 @@ import re
 
 from flask import Flask, Response, request, redirect, stream_with_context
 from flask_caching import Cache
+import guide
 
 _bin = 'wayback_machine_downloader' # gem install
 _old_url = 'csrc.nist.gov'
@@ -139,6 +140,85 @@ def from_filesystem(path):
     except FileNotFoundError:
         return None
 
+def format_ref(ref, section, subsection):
+    prefix = ' * ' if subsection is None else ' · * '
+
+    uid = ref['uid']
+    uid = uid.replace('NIST ', '')
+    uid = uid.replace(' Rev ', 'r')
+
+    sid = 'doc-' + ref['uid'].lower().replace(' ', '-')
+    exp = ''
+    if len(ref['related']) > 0:
+        exp = '+<a id="exp-{}"'.format(sid)
+        exp += ' onclick="move(\'{}\')'.format(sid)
+        exp += '">{}</a>'.format(len(ref['related']))
+
+    tag = '[<a href="https://{}/{}">{}</a>]{} '.format(
+            _base_url, ref['url'], uid, exp)
+    tag += '– {}'.format(ref['title'])
+
+    tag = prefix + tag
+    tag = '<span id="{}" style="display: inline;">{}<br></span>\n'.format(
+            sid, tag)
+
+    if len(ref['related']) > 0:
+        tag += '<div id="etc-{}" style="display: none">'.format(sid)
+        tag += '<p>'
+        for link in ref['related']:
+            tag += ' · * <a href="https://{}/{}">{}</a><br>'.format(
+                    _base_url, link, link.split('/')[-1])
+        tag += '</p></div>'
+
+    return tag
+
+@cache.cached(timeout=3600)
+def generate_guide(new_page):
+    global library_whitelist
+    global whitelist
+
+    if whitelist is None or library_whitelist is None:
+        load_whitelists()
+
+    sections, refs = guide.load()
+    refs = guide.populate(refs, library_whitelist, url_prefix='library/',
+                    extensions=library_extensions)
+    refs = guide.populate(refs, whitelist, extensions=library_extensions)
+
+    payload = ''
+    for name, section in sections.items():
+        sid = re.sub('[^a-z-]', '', name.lower().replace(' ', '-'))
+        sid = 'doc-' + sid
+
+        payload += '<section><h2 id="{}"><a href="#{}">+</a> '.format(sid, sid)
+        payload += '{}</h2>\n'.format(name)
+
+        for uid in section['refs']:
+            ref = refs[uid]
+            if ref['url'] is None:
+                continue
+
+            payload += format_ref(refs[uid], section, None)
+
+        for name, subsection in section.get('subsections', {}).items():
+            sid = re.sub('[^a-z-]', '', name.lower().replace(' ', '-'))
+            sid = 'doc-' + sid
+
+            payload += '<h3 id="{}"> – <a href="#{}">*</a> '.format(sid, sid)
+            payload += '{}</h3>\n'.format(name)
+
+            for uid in subsection['refs']:
+                ref = refs[uid]
+                if ref['url'] is None:
+                    continue
+
+                payload += format_ref(refs[uid], section, None)
+
+        payload += '</section>'
+
+    new_page = new_page.replace('__guide_content__', payload)
+    return new_page
+
 def generate_list(new_page, entries, use_path=False):
     count = 0
     payload = ''
@@ -199,6 +279,7 @@ def library():
         '<br>\n -- <blink id="count">{}</blink> '.format(count) +
         'files displayed --')
 
+    new_page = generate_guide(new_page)
     return new_page
 
 

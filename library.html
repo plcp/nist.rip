@@ -23,9 +23,21 @@
         margin-bottom: 1em;
     }
 
+    h2
+    {
+        font-size: 1em;
+    }
+
+    h3
+    {
+        font-size: 1em;
+        font-weight: normal;
+    }
+
     a
     {
         text-decoration: none;
+        cursor: pointer;
         color: #55f;
     }
 
@@ -50,10 +62,24 @@
 <body>
 <header>
   Files available<a href="#footer">¹</a> to download:
-  <input id="filter">
+  <input id="filter"> <span id="expd"></span>
 </header>
 
 <div id="list">
+  <div id="guide">
+    <br>
+    __guide_content__
+    <br>
+    Sourced from
+    <a href="https://csrc.nist.rip/publications/CSD_DocsGuide.pdf">here</a> –
+    does not include recent documents.
+
+    <hr>
+    <br>
+    <h2>Bulk access – including recent documents:</h2>
+    <br>
+  </div>
+
   <br>
   -- [End of List] --
   <br>
@@ -75,6 +101,19 @@
   <br>
 </footer>
 <script>
+function move(id)
+{
+    var src = document.getElementById('etc-' + id)
+    var dst = document.getElementById(id)
+
+    src.style.display = 'inline';
+    dst.innerHTML = dst.innerHTML + src.outerHTML;
+    src.outerHTML = '';
+
+    var exp = document.getElementById('exp-' + id)
+    exp.outerHTML = ''
+}
+
 function update(list, value)
 {
     var count = 0
@@ -130,12 +169,32 @@ function activate()
     for (var i = 0; i < nb_nodes; i++)
     {
         var n = list.childNodes[i]
+        if (n.id == 'guide')
+        {
+            if (n.style.display == 'none')
+                continue
+
+            var nb_subs = n.childNodes.length
+            for (var j = 0; j < nb_subs; j++)
+            {
+                var m = n.childNodes[j]
+                if (m.nodeName != 'SECTION')
+                    continue
+
+                (function(a, b, c)
+                {
+                    tasks.push(setTimeout(function() { update(a, b) }, c * 10))
+                }(m, value, j))
+            }
+            continue
+        }
+
         if (n.nodeName == 'P')
         {
-            (function(a, b)
+            (function(a, b, c)
             {
-                tasks.push(setTimeout(function() { update(a, b) }, i * 10))
-            }(n, value))
+                tasks.push(setTimeout(function() { update(a, b) }, c * 10))
+            }(n, value, i))
         }
     }
 }
@@ -144,6 +203,29 @@ var filter = document.getElementById('filter')
 filter.placeholder = 'Filter'
 filter.onkeyup = activate
 filter.value = ''
+
+var expd = document.getElementById('expd')
+expd.outerHTML = '<br><br>[<a id="expd">collapse guide</a>]'
+
+var expd = document.getElementById('expd')
+expd.onclick = function()
+{
+    var guide = document.getElementById('guide')
+    if (guide.style.display == 'none')
+    {
+        guide.style.display = 'inline'
+        expd.innerText = 'collapse guide'
+    }
+    else
+    {
+        guide.style.display = 'none'
+        expd.innerText = 'expand guide'
+    }
+    activate()
+}
+
+if (!window.location.href.includes('#doc-'))
+    expd.onclick()
 
 </script>
 </body></html>
