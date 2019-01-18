@@ -26,12 +26,7 @@
     h2
     {
         font-size: 1em;
-    }
-
-    h3
-    {
-        font-size: 1em;
-        font-weight: normal;
+        display: inline;
     }
 
     a
@@ -42,6 +37,11 @@
     }
 
     p
+    {
+        display: inline;
+    }
+
+    section
     {
         display: inline;
     }
@@ -63,7 +63,7 @@
 <body>
 <header>
   Files available<a href="#footer">¹</a> to download:
-  <input id="filter">
+  <input id="filter" autofocus="autofocus">
 </header>
 
 <div id="list">
@@ -126,7 +126,7 @@ function move(id)
     exp.outerHTML = ''
 }
 
-function update(list, value)
+function update(list, value, next_time)
 {
     var count = 0
     var content = []
@@ -134,6 +134,9 @@ function update(list, value)
     for (var i = 0; i < nb_nodes; i++)
     {
         var n = list.childNodes[i]
+        if (n.nodeName == 'BR')
+            continue
+
         if (n.nodeName != 'SPAN')
         {
             var outer = n.outerHTML
@@ -159,29 +162,55 @@ function update(list, value)
             content.push(outer)
         }
     }
-    list.innerHTML = content.join('')
+    content = content.join('')
+    if (count > 0 && list.nodeName == 'SECTION')
+        content += '<br>'
+    list.innerHTML = content
 
     if (list.nodeName == 'P')
     {
         count += parseInt(document.getElementById('count').innerHTML)
         document.getElementById('count').innerHTML = count.toString()
     }
+    else
+    {
+        ;(function(a, b)
+        {
+            setTimeout(function() { cleanup(a, b) }, 50)
+        }(list, count))
+    }
+
+    if (tasks.length > 0)
+        pending = setTimeout(tasks.pop(), 10)
+}
+
+function cleanup(list, count)
+{
+    var title = document.getElementById('title-' + list.id)
+    if (!title)
+        return
+
+    if (count == 0 && title.style.display != 'none')
+        title.style.display = 'none';
+    else if (count > 0 && title.style.display == 'none')
+        title.style.display = 'inline';
 }
 
 var tasks = []
+var pending = 0
 function activate()
 {
     document.getElementById('count').innerHTML = '0'
 
     var nb_tasks = tasks.length
-    for (var i = 0; i < nb_tasks; i++)
-        clearTimeout(tasks[i])
+
     tasks = []
+    clearTimeout(pending)
 
     var value = filter.value
     var list = document.getElementById('list')
     var nb_nodes = list.childNodes.length
-    for (var i = 0; i < nb_nodes; i++)
+    for (var i = nb_nodes - 1; i >= 0; i--)
     {
         var n = list.childNodes[i]
         if (n.id == 'guide')
@@ -190,33 +219,36 @@ function activate()
                 continue
 
             var nb_subs = n.childNodes.length
-            for (var j = 0; j < nb_subs; j++)
+            for (var j = nb_subs - 1; j >= 0; j--)
             {
                 var m = n.childNodes[j]
                 if (m.nodeName != 'SECTION')
                     continue
 
-                (function(a, b, c)
+                ;(function(a, b, c)
                 {
-                    tasks.push(setTimeout(function() { update(a, b) }, c * 10))
-                }(m, value, j))
+                    tasks.push(function() { update(a, b, c) })
+                }(m, value, j * 50))
             }
             continue
         }
 
         if (n.nodeName == 'P')
         {
-            (function(a, b, c)
+            ;(function(a, b, c)
             {
-                tasks.push(setTimeout(function() { update(a, b) }, c * 10))
-            }(n, value, i))
+                tasks.push(function() { update(a, b, c) })
+            }(n, value, i * 50))
         }
     }
+
+    if (tasks.length > 0)
+        pending = setTimeout(tasks.pop(), 10)
 }
 
 var filter = document.getElementById('filter')
 filter.placeholder = 'Filter'
-filter.onkeyup = activate
+filter.oninput = activate
 filter.value = ''
 
 var expd = document.getElementById('expd')
@@ -230,14 +262,16 @@ expd.onclick = function()
     {
         guide.style.display = 'inline'
         expd.innerText = 'collapse guide'
+        activate()
     }
     else
     {
         guide.style.display = 'none'
         expd.innerText = 'expand guide'
     }
-    activate()
 }
+
+filter.focus()
 
 </script>
 </body></html>

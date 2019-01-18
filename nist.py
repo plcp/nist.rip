@@ -188,10 +188,11 @@ def generate_guide(new_page):
     payload = ''
     for name, section in sections.items():
         sid = re.sub('[^a-z-]', '', name.lower().replace(' ', '-'))
-        sid = 'doc-' + sid
 
-        payload += '<section><h2 id="{}"><a href="#{}">+</a> '.format(sid, sid)
-        payload += '{}</h2>\n'.format(name)
+        payload += '<section id="{}"><h2 id="doc-{}">'.format(sid, sid)
+        payload += '<a href="#doc-{}">+</a> '.format(sid)
+        payload += '<span id="title-{}">{}<br><br></span></h2>\n'.format(
+            sid, name)
 
         for uid in sorted(list(section['refs'])):
             ref = refs[uid]
@@ -200,12 +201,14 @@ def generate_guide(new_page):
 
             payload += format_ref(refs[uid], section, None)
 
-        for name, subsection in section.get('subsections', {}).items():
-            sid = re.sub('[^a-z-]', '', name.lower().replace(' ', '-'))
-            sid = 'doc-' + sid
+        for idx, (name, subsection) in enumerate(
+                section.get('subsections', {}).items()):
+            br = '<br>' if idx > 0 else ''
 
-            payload += '<h3 id="{}"> – <a href="#{}">*</a> '.format(sid, sid)
-            payload += '{}</h3>\n'.format(name)
+            sid = re.sub('[^a-z-]', '', name.lower().replace(' ', '-'))
+            payload += '<span id="doc-{}" style="display: inline">'.format(sid)
+            payload += '{}<a href="#doc-{}">::</a> '.format(br, sid)
+            payload += '{}<br><br></span>\n'.format(name)
 
             for uid in sorted(list(subsection['refs'])):
                 ref = refs[uid]
@@ -214,7 +217,7 @@ def generate_guide(new_page):
 
                 payload += format_ref(refs[uid], section, None)
 
-        payload += '</section>'
+        payload += '<br></section>'
 
     new_page = new_page.replace('__guide_content__', payload)
     return new_page
