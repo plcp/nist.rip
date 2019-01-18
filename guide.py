@@ -47,6 +47,7 @@ def populate(refs, urls, url_prefix='', extensions=('pdf')):
         uid, title = uid.lower(), entry['title'].lower()
         uid = uid.replace('Rev-', 'Rev')
 
+        maluses = []
         bonuses = []
         pattern = None
         candidates = []
@@ -58,15 +59,21 @@ def populate(refs, urls, url_prefix='', extensions=('pdf')):
                 pattern = ('[. _-]*'.join(
                     ['0?' + ft for ft in
                     uid.split(' ')[1].split('-')]) + '[^0-9]')
-                if uid == 'fips 140':
+
+                if prefix == 'fips':
+                    maluses += ['nist sb', 'sb', 'comparison']
                     pattern = 'fips[ _-]*' + pattern
+
                 pattern = re.compile(pattern)
 
         for prefix in ['ir', 'sb', 'sp', 'fips']:
             if uid.startswith('nist {}'.format(prefix)):
-                bonuses = uid.replace('-', ' ').split(' ')
-                bonuses.append('nistir')
-                best = 'nist{}'.format(prefix)
+                bonuses += uid.replace('-', ' ').split(' ')
+                bonuses += [prefix, 'nist{}'.format(prefix)]
+                best = 'nist {}'.format(prefix)
+
+                if prefix == 'fips':
+                    maluses += ['nist sb', 'sb', 'comparison']
 
                 pattern = ('(nist)?' + '[. _-]*'.join([prefix] +
                     uid.split(' ')[2].split('-')) + '[^0-9]')
@@ -103,9 +110,10 @@ def populate(refs, urls, url_prefix='', extensions=('pdf')):
             if month is not None:
                 pattern = '[ _-]+'.join([uid[-2:], month]) + '[^0-9]'
                 pattern = re.compile(pattern)
-                best = 'nist SB'
+                best = 'nist sb'
                 if 'itl security' in title:
-                    best = 'itl'
+                    bonuses += ['itl', 'itl security', 'bulletin', 'bul',
+                                'itl bulletin security']
 
         if pattern is None:
             continue
