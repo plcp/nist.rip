@@ -54,6 +54,7 @@
     #back
     {
         position: absolute;
+        text-align: right;
         top: 8px;
         right: 8px;
     }
@@ -62,27 +63,24 @@
 <body>
 <header>
   Files available<a href="#footer">¹</a> to download:
-  <input id="filter"> <span id="expd"></span>
+  <input id="filter">
 </header>
-
-<script>
-if (!window.location.href.includes('#doc-'))
-    document.getElementById('guide').style.display = 'none'
-</script>
 
 <div id="list">
   <div id="guide">
+    <script>
+    if (!window.location.href.includes('#doc-'))
+        document.getElementById('guide').style.display = 'none'
+    </script>
+
     <br>
     __guide_content__
-    <br>
-    Sourced from
-    <a href="https://csrc.nist.rip/publications/CSD_DocsGuide.pdf">here</a> –
-    does not include recent documents.
 
-    <hr>
     <br>
-    <h2>Bulk access – including recent documents:</h2>
     <br>
+    Partial index sourced from
+    <a href="https://csrc.nist.rip/publications/CSD_DocsGuide.pdf">here</a>,
+    full listing below:
   </div>
 
   <br>
@@ -91,6 +89,7 @@ if (!window.location.href.includes('#doc-'))
 </div>
 
 <div id="back">
+<span id="expd"></span><br>
 [<a href="https://__base_url__/">back</a>]
 </div>
 
@@ -154,8 +153,11 @@ function update(list, value)
     }
     list.innerHTML = content.join('')
 
-    count += parseInt(document.getElementById('count').innerHTML)
-    document.getElementById('count').innerHTML = count.toString()
+    if (list.nodeName == 'P')
+    {
+        count += parseInt(document.getElementById('count').innerHTML)
+        document.getElementById('count').innerHTML = count.toString()
+    }
 }
 
 var tasks = []
@@ -210,7 +212,7 @@ filter.onkeyup = activate
 filter.value = ''
 
 var expd = document.getElementById('expd')
-expd.outerHTML = '<br><br>[<a id="expd">collapse guide</a>]'
+expd.outerHTML = '[<a id="expd">guide</a>]'
 
 var expd = document.getElementById('expd')
 expd.onclick = function()
