@@ -160,6 +160,7 @@ def populate(refs, urls, url_prefix='', extensions=('pdf')):
 
         scores.sort(key=lambda x: -x[0])
         refs[oid]['url'] = scores[0][1]
-        refs[oid]['related'] += [sc[1] for sc in scores[1:]]
+        refs[oid]['related'] = ([sc[1] for sc in scores[1:]]
+                + refs[oid]['related'])
 
     return refs

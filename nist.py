@@ -172,7 +172,7 @@ def format_ref(ref, section, subsection):
 
     return tag
 
-@cache.cached(timeout=3600)
+@cache.cached(timeout=86400)
 def generate_guide(new_page):
     global library_whitelist
     global whitelist
@@ -193,7 +193,7 @@ def generate_guide(new_page):
         payload += '<section><h2 id="{}"><a href="#{}">+</a> '.format(sid, sid)
         payload += '{}</h2>\n'.format(name)
 
-        for uid in section['refs']:
+        for uid in sorted(list(section['refs'])):
             ref = refs[uid]
             if ref['url'] is None:
                 continue
@@ -207,7 +207,7 @@ def generate_guide(new_page):
             payload += '<h3 id="{}"> – <a href="#{}">*</a> '.format(sid, sid)
             payload += '{}</h3>\n'.format(name)
 
-            for uid in subsection['refs']:
+            for uid in sorted(list(subsection['refs'])):
                 ref = refs[uid]
                 if ref['url'] is None:
                     continue

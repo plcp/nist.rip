@@ -605,7 +605,7 @@ February 2000 | Guideline for Implementing Cryptography in the Federal Governmen
 
  [section] :- SMART CARDS
 
-FIPS 20 1 | Personal Identity Verification for Federal Employees and Contractors
+FIPS 201 | Personal Identity Verification for Federal Employees and Contractors
 SP 800-116 | A Recommendation for the Use of PIV Credentials in Physical Access Control Systems (PACS)
 SP 800-104 | A Scheme for PIV Visual Card Topography
 SP 800-85A | PIV Card Application and Middleware Interface Test Guidelines (SP 800-73 compliance)
