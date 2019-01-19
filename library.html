@@ -120,7 +120,7 @@ function move(id)
 
     src.style.display = 'inline';
     dst.innerHTML = dst.innerHTML + src.outerHTML;
-    src.outerHTML = '';
+    src.innerHTML = '';
 
     var exp = document.getElementById('exp-' + id)
     exp.outerHTML = ''
