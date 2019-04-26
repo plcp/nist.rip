@@ -454,13 +454,13 @@ def nist(path):
     global whitelist
     whitelist = None
 
-    forced = False
-    if path.endswith('?wayback=forced'):
-        path = path[:-1 - len('?wayback=forced')]
-        forced = True
-
     path = fixup_path(path)
     path = redact_path(path)
+
+    forced = False
+    if path.endswith('?wayback=forced'):
+        path = path[:-len('?wayback=forced')]
+        forced = True
 
     out = from_filesystem(path)
     if out is None or (forced and len(out) == 0):
