@@ -392,22 +392,54 @@ def not_found(path):
     return text
 
 
+def zero_length(path):
+    referrer = request.headers.get('Referer') or ''
+    if not referrer.startswith('https://{}/'.format(_base_url)):
+        referrer = 'https://{}'.format(_base_url)
+
+    text = 'File has been found, but has been corrupted :('
+    if path.endswith(library_extensions):
+        text = ('You can try to force download by clicking here: ' +
+                '<a href="{}?wayback=forced">here</a>!'.format(path))
+
+    text = ('<html><body style="font-family: mono; color: #555;' +
+            'background-color: #fafafa;">' + text)
+    text += '<br>\n<br>\n'
+    text += 'Go <a href="{}">back</a> or '.format(referrer)
+    text += 'browse the '
+    text += '<a href="https://{}/library">library</a>.'.format(_base_url)
+    text += '<br>\n<br>\n<br>\n–––––––––––<br>\n<br>\n'
+    text += 'Contact us <a href="mailto:webmaster-csrc@nist.rip">here</a>'
+    text += ' to report issues.'
+
+    text += '</body></html>'
+    return text
+
+
 @app.route('/', defaults={'path': 'index.html'})
 @app.route('/<path:path>')
 def nist(path):
     global whitelist
     whitelist = None
 
+    forced = False
+    if path.endswith('?wayback=forced'):
+        path = path.replace('?wayback=forced', '')
+        forced = True
+
     path = fixup_path(path)
     path = redact_path(path)
 
     out = from_filesystem(path)
-    if out is None:
+    if out is None or forced:
         pull_wayback(path)
         out = from_filesystem(path)
 
     if out is None:
         return not_found(path), 404
+
+    if len(out) == 0:
+        return zero_length(path), 500
 
     if path.endswith('.js'):
         mimetype = 'text/script'
