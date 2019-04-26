@@ -397,10 +397,10 @@ def zero_length(path):
     if not referrer.startswith('https://{}/'.format(_base_url)):
         referrer = 'https://{}'.format(_base_url)
 
-    text = 'File has been found, but has been corrupted :('
+    text = 'File has been found, but has been corrupted :(<br>\n'
     if path.endswith(library_extensions):
-        text = ('You can try to force download by clicking here: ' +
-                '<a href="{}?wayback=forced">here</a>!'.format(path))
+        text += ('You can try to force download by clicking here: ' +
+                 '<a href="{}?wayback=forced">here</a>!'.format(path))
 
     text = ('<html><body style="font-family: mono; color: #555;' +
             'background-color: #fafafa;">' + text)
