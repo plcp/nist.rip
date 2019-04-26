@@ -112,6 +112,24 @@ def pull_wayback(path, _from=stamps[0], _to=before):
         return None
 
 
+def unlink_file(path):
+    global whitelist
+    if whitelist is None:
+        load_whitelists()
+
+    if path not in whitelist:
+        return None
+
+    path = 'websites/{}/{}'.format(_old_url, path)
+    if os.path.isfile(path):
+        os.unlink(path)
+
+    try:
+        whitelist.remove(path)
+    except KeyError:
+        pass
+
+
 @cache.memoize(600)
 def from_filesystem(path):
     global whitelist
@@ -397,10 +415,10 @@ def zero_length(path):
     if not referrer.startswith('https://{}/'.format(_base_url)):
         referrer = 'https://{}'.format(_base_url)
 
-    text = 'File has been found, but has been corrupted :(<br>\n'
+    text = 'File has been found, but has been corrupted :(<br>\n<br>\n'
     if path.endswith(library_extensions):
         text += ('You can try to force download by clicking here: ' +
-                 '<a href="{}?wayback=forced">here</a>!'.format(path))
+                 '<a href="?wayback=forced">here</a>!'.format(path))
 
     text = ('<html><body style="font-family: mono; color: #555;' +
             'background-color: #fafafa;">' + text)
@@ -432,6 +450,9 @@ def nist(path):
 
     out = from_filesystem(path)
     if out is None or forced:
+        if forced and (out is None or len(out) == 0):
+            unlink_file(path)
+
         pull_wayback(path)
         out = from_filesystem(path)
 
