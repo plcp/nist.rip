@@ -469,6 +469,8 @@ def nist(path):
             unlink_file(path)
 
         pull_wayback(path)
+        cache.delete_memoized(from_filesystem, path)
+
         out = from_filesystem(path)
 
     if out is None:
