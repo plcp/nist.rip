@@ -459,8 +459,9 @@ def nist(path):
 
     forced = False
     if path.endswith('?wayback=forced'):
-        path = path[:-len('?wayback=forced')]
         forced = True
+        path = path[:-len('?wayback=forced')]
+        cache.delete_memoized(from_filesystem, path)
 
     out = from_filesystem(path)
     if out is None or (forced and len(out) == 0):
