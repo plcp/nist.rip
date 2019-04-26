@@ -456,7 +456,7 @@ def nist(path):
 
     forced = False
     if path.endswith('?wayback=forced'):
-        path = path.replace('?wayback=forced', '')
+        path = path[:-1 - len('?wayback=forced')]
         forced = True
 
     path = fixup_path(path)
