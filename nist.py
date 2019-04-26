@@ -1,5 +1,6 @@
 import subprocess
 import threading
+import requests
 import tarfile
 import urllib
 import queue
@@ -98,7 +99,7 @@ def pull_wayback(path, _from=stamps[0], _to=before):
         # magic strings in error message to check for wayback failure
         if b'found 0 snaphots' in out and b'No files' in out:
             if _from not in stamps or _from == stamps[-1]:
-                return None
+                raise FileNotFoundError
             _next = stamps[stamps.index(_from) + 1]
             return pull_wayback(path, _from=_next)
 
@@ -107,7 +108,20 @@ def pull_wayback(path, _from=stamps[0], _to=before):
             f.write(path + '\n')
 
         return out
+    except FileNotFoundError:
+        rq = requests.get('https://{}/{}'.format(_old_url, path))
+        if not magic.from_buffer(rq.content).startswith('PDF document'):
+            return None
 
+        filepath = 'websites/{}/{}'.format(_old_url, path)
+        with open(filepath, 'rb') as f:
+            filepath.write(rq.content)
+
+        whitelist.add(path)
+        with open('whitelist.txt', 'a') as f:
+            f.write(path + '\n')
+
+        return rq.content
     except subprocess.CalledProcessError as e:
         return None
 
@@ -449,8 +463,8 @@ def nist(path):
     path = redact_path(path)
 
     out = from_filesystem(path)
-    if out is None or forced:
-        if forced and (out is None or len(out) == 0):
+    if out is None or (forced and len(out) == 0):
+        if forced and out is not None:
             unlink_file(path)
 
         pull_wayback(path)
