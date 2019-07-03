@@ -114,8 +114,14 @@ def pull_wayback(path, _from=stamps[0], _to=before):
             return None
 
         filepath = 'websites/{}/{}'.format(_old_url, path)
-        with open(filepath, 'rb') as f:
-            filepath.write(rq.content)
+        dirspath = '/'.join(filepath.split('/')[:-1])
+        try:
+            os.makedirs(dirspath)
+        except FileExistsError:
+            pass
+
+        with open(filepath, 'wb') as f:
+            f.write(rq.content)
 
         whitelist.add(path)
         with open('whitelist.txt', 'a') as f:
