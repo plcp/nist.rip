@@ -393,7 +393,6 @@ def library_file(book):
     if library_whitelist is None:
         load_whitelists()
 
-    book = redact_path(book)
     if book.endswith(library_extensions) and book in library_whitelist:
         with open('./pdfs/{}'.format(book), 'rb') as f:
             out = f.read()
