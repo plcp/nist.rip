@@ -178,14 +178,14 @@ def from_filesystem(path):
     except FileNotFoundError:
         return None
 
-def format_ref(ref, section, subsection):
+def format_ref(ref, section, subsection, suffix):
     prefix = ' * ' if subsection is None else ' · * '
 
     uid = ref['uid']
     uid = uid.replace('NIST ', '')
     uid = uid.replace(' Rev ', 'r')
 
-    sid = 'doc-' + ref['uid'].lower().replace(' ', '-')
+    sid = 'doc-' + ref['uid'].lower().replace(' ', '-') + '-{}'.format(suffix)
     exp = ''
     if len(ref['related']) > 0:
         exp = '+<a id="exp-{}"'.format(sid)
@@ -223,9 +223,12 @@ def generate_guide(new_page):
     refs = guide.populate(refs, library_whitelist, url_prefix='library/',
                     extensions=library_extensions)
 
+    leptid = 0
     payload = ''
     for name, section in sections.items():
         sid = re.sub('[^a-z-]', '', name.lower().replace(' ', '-'))
+        sid = '{}-{}'.format(sid, leptid)
+        leptid += 1
 
         payload += '<section id="{}"><h2 id="doc-{}">'.format(sid, sid)
         payload += '<a href="#doc-{}">+</a> '.format(sid)
@@ -237,23 +240,30 @@ def generate_guide(new_page):
             if ref['url'] is None:
                 continue
 
-            payload += format_ref(refs[uid], section, None)
+            payload += format_ref(refs[uid], section, None, str(leptid))
 
+        eptid = 0
         for idx, (name, subsection) in enumerate(
                 section.get('subsections', {}).items()):
             br = '<br>' if idx > 0 else ''
 
             sid = re.sub('[^a-z-]', '', name.lower().replace(' ', '-'))
+            sid = '{}-{}'.format(sid, eptid)
+            eptid += 1
+
             payload += '<span id="doc-{}" style="display: inline">'.format(sid)
             payload += '{}<a href="#doc-{}">::</a> '.format(br, sid)
             payload += '{}<br><br></span>\n'.format(name)
 
+            ptid = 0
             for uid in sorted(list(subsection['refs'])):
                 ref = refs[uid]
                 if ref['url'] is None:
                     continue
 
-                payload += format_ref(refs[uid], section, None)
+                ptid += 1
+                payload += format_ref(refs[uid], section, None,
+                                      '{}-{}-{}'.format(leptid, eptid, ptid))
 
         payload += '<br></section>'
 
